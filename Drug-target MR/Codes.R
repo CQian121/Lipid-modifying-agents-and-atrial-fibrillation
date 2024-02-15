@@ -33,7 +33,7 @@ for (i in 1:length(lipid.genes)) {
                        clump_kb = 10000,
                        clump_r2 = 0.3,  ##clumped using r2<0.3 within ¡À10Mb
                        plink_bin = get_plink_exe(),
-                       bfile = "g1000_eur")  ##Reference data for Europeans from from Phase 3 of 1000 Genomes
+                       bfile = "./g1000_eur")  ##Reference data for Europeans from from Phase 3 of 1000 Genomes
   targets.lipid<-subset(targets.lipid,SNP %in% clump.data$rsid)
   if(lipid.genes[i] %in% c(ldlc.targets,tg.targets)){targets.lipid$beta.exposure=-targets.lipid$beta.exposure}
   iv.targets<-rbind(iv.targets,cbind(targets.lipid,genes=lipid.genes[i]))
@@ -126,7 +126,7 @@ clump.data<-ld_clump(dplyr::tibble(rsid=iv.lpl.asian$SNP, pval=iv.lpl.asian$pval
                      clump_kb = 10000,
                      clump_r2 = 0.3,
                      plink_bin = get_plink_exe(),
-                     bfile = "g1000_eas")  ##Reference data for East Asians from from Phase 3 of 1000 Genomes
+                     bfile = "./g1000_eas")  ##Reference data for East Asians from from Phase 3 of 1000 Genomes
 iv.lpl.asian<-subset(iv.lpl.asian,SNP %in% clump.data$rsid)
 iv.lpl.asian$beta.exposure=-iv.lpl.asian$beta.exposure
 iv.lpl.asian$F.statistic=(iv.lpl.asian$beta.exposure/iv.lpl.asian$se.exposure)^2 
