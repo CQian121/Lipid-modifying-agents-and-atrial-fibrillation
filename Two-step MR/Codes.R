@@ -60,7 +60,7 @@ rm(hp.afnie)
 
 ##potential pleiotropic SNPs were removed using PhenoscannerV2 (BMI, Hypertension, and CHD)
 
-removed.snps<-read.table("./phenoscanner/pheno_removed_snps.txt",header = T,sep = "\t",stringsAsFactors = F)
+removed.snps<-read.table("pheno_removed_snps.txt",header = T,sep = "\t",stringsAsFactors = F)
 iv.lipcardio.final<-list(iv.bmi.pre,iv.hp.pre,iv.chd.pre)
 names(iv.lipcardio.final)=c("BMI","Hypertension","CHD")
 for (i in 1:length(iv.lipcardio.final)) {
