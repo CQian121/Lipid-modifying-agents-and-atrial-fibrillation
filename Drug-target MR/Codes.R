@@ -31,7 +31,7 @@ for (i in 1:length(lipid.genes)) {
     convert_outcome_to_exposure() %>% subset(pval.exposure<5e-08)   #####significant SNPs with p<5e-08
   clump.data<-ld_clump(dplyr::tibble(rsid=targets.lipid$SNP, pval=targets.lipid$pval.exposure, id=targets.lipid$id.exposure),
                        clump_kb = 10000,
-                       clump_r2 = 0.3,  ##clumped using r2<0.3 within ¡À10Mb
+                       clump_r2 = 0.3,  ##clumped using r2<0.3 within Â¡Ã€10Mb
                        plink_bin = get_plink_exe(),
                        bfile = "g1000_eur")  ##Reference data for Europeans from from Phase 3 of 1000 Genomes
   targets.lipid<-subset(targets.lipid,SNP %in% clump.data$rsid)
@@ -92,7 +92,7 @@ write.table(leaveoneout.lpl.afnie,"Leaveoneout_lpl_afnie.txt",quote = F,row.name
 
 #####5.1. Main analyses#######################
 
-af.finngen<-fread("F:/Insilicodata/MR_analysis/outcome/AF/finngen_R9_I9_AF.gz",header = T,sep = "\t",stringsAsFactors = F)
+af.finngen<-fread("finngen_R9_I9_AF.gz",header = T,sep = "\t",stringsAsFactors = F)
 af.fin<-subset(af.finngen,rsids %in% iv.lpl$SNP)
 
 lpl.affin<-format_data(af.fin,type="outcome",snps = iv.lpl$SNP,snp_col = "rsids",effect_allele_col = "alt",other_allele_col = "ref",
@@ -114,8 +114,7 @@ write.table(leaveoneout.lpl.affin,"Leaveoneout_lpl_affin.txt",quote = F,row.name
 ####6. Validation in East Asian population##################################
 
 regional.snps<-read.table("100kb_snps_EAS.csv",header = T,sep=',',stringsAsFactors = F)
-ldlc.asian<-fread("F:/Insilicodata/MR_analysis/outcome/Cardiometabolic_traits/lipid/2021GLGC/logTG_INV_EAS_1KGP3_ALL.meta.singlevar.results.gz",
-                  header = T,sep = "\t",stringsAsFactors = F)
+ldlc.asian<-fread("logTG_INV_EAS_1KGP3_ALL.meta.singlevar.results.gz",header = T,sep = "\t",stringsAsFactors = F)
 head(ldlc.asian)
 ldlc.asian<-subset(ldlc.asian,rsID %in% regional.snps$snps)
 ldlc.asian<-format_data(ldlc.asian,type="exposure",snp_col = "rsID",effect_allele_col = "ALT",other_allele_col = "REF",
