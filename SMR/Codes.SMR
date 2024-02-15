@@ -1,0 +1,11 @@
+##"Adipose_Subcutaneous" was downloaded from https://yanglab.westlake.edu.cn/data/SMR/GTEx_V8_cis_eqtl_summary.html
+##"g1000_eur" was downloaded from https://ctg.cncr.nl/software/magma
+
+####make .besd file for LPL gene
+./smr-1.3.1 --beqtl-summary ./Adipose_Subcutaneous --gene LPL --query 1 --out myquery.gene --make-besd
+
+####SMR analysis in Nielsen's dataset
+./smr-1.3.1 --bfile ./g1000_eur --gwas-summary ./GWAS.AFnie.ma --beqtl-summary ./myquery.gene --out LPL_AFnie.smr --thread-num 10
+
+####SMR analysis in FinnGen dataset
+./smr-1.3.1 --bfile ./g1000_eur --gwas-summary ./GWAS.AFfin.ma --beqtl-summary ./myquery.gene --out LPL_AFfin.smr --thread-num 10
