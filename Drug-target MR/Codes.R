@@ -79,12 +79,13 @@ rm(targets.lipid,targets.afnie)
 write.table(MRresults.afnie,"MRresults_afnie.txt",quote = F,row.names = F,sep = "\t")
 write.table(MRsensi.afnie,"MRsensi_afnie.txt",quote = F,row.names = F,sep = "\t")
 
-#####4.2. Leave-one-out analysis#################
+#####4.2. MR_PRESSO and leave-one-out analyses#################
 
 iv.lpl<-subset(iv.targets,genes=="LPL")
 lpl.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.lpl$SNP,proxies = F,access_token = NULL) %>%
   harmonise_data(iv.lpl,.,action = 2) %>%
   subset(mr_keep==T & pval.exposure<pval.outcome)
+run_mr_presso(lpl.afnie)
 leaveoneout.lpl.afnie<-generate_odds_ratios(mr_leaveoneout(lpl.afnie))
 write.table(leaveoneout.lpl.afnie,"Leaveoneout_lpl_afnie.txt",quote = F,row.names = F,sep = "\t")
 
@@ -106,8 +107,9 @@ MRsensi.affin<-data.frame(hetero=mr_heterogeneity(lpl.affin)[nrow(mr_heterogenei
 write.table(MRresults.affin,"MRresults_affin.txt",quote = F,row.names = F,sep="\t")
 write.table(MRsensi.affin,"MRsensi_affin.txt",quote = F,row.names = F,sep = "\t")
 
-#####5.2. Leave-one-out analysis################
+#####5.2. MR_PRESSO and leave-one-out analyses################
 
+run_mr_presso(lpl.affin)
 leaveoneout.lpl.affin<-generate_odds_ratios(mr_leaveoneout(lpl.affin))
 write.table(leaveoneout.lpl.affin,"Leaveoneout_lpl_affin.txt",quote = F,row.names = F,sep = "\t")
 
