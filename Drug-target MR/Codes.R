@@ -7,6 +7,7 @@ library(ieugwasr)
 ##"g1000_eur" and "g1000_eas" were downloaded from https://ctg.cncr.nl/software/magma
 ##"finngen_R9_I9_AF.gz" was downloaded from https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_I9_AF.gz
 ##"logTG_INV_EAS_1KGP3_ALL.meta.singlevar.results.gz" was downloaded from https://csg.sph.umich.edu/willer/public/glgc-lipids2021/results/ancestry_specific/
+##"nielsen-thorolfsdottir-willer-NG2018-AFib-gwas-summary-statistics.tbl.gz" was downloaded from https://csg.sph.umich.edu/willer/public/afib2018/
 
 ####2. Selecting IVs for drug targets############################################
 
@@ -113,7 +114,37 @@ run_mr_presso(lpl.affin)
 leaveoneout.lpl.affin<-generate_odds_ratios(mr_leaveoneout(lpl.affin))
 write.table(leaveoneout.lpl.affin,"Leaveoneout_lpl_affin.txt",quote = F,row.names = F,sep = "\t")
 
-####6. Validation in East Asian population##################################
+####6. Colocalization##################################
+
+#####6.1 Nielsen's dataset############################
+
+ciseQTL.lpl<-read.table("ciseqtl_LPL.txt",header = T,sep = "\t",stringsAsFactors = F)  ##Cis-eQTL data for LPL in subcutaneous adipose tissues from GETxV8
+lpl.pos=c(8,19759228,19824769)
+eqtl.data<-subset(ciseQTL.lpl,BP<=lpl.pos[3]+250e03 & BP>=lpl.pos[2]-250e03)
+af.nie<-fread("nielsen-thorolfsdottir-willer-NG2018-AFib-gwas-summary-statistics.tbl.gz",sep = "\t",header = T,check.names = F)
+head(af.nie)
+share.id=intersect(eqtl.data$SNP,af.nie$rs_dbSNP147)
+gwas.data<-af.nie[match(share.id,af.nie$rs_dbSNP147),]
+gwas.data$MAF=ifelse(gwas.data$Freq_A2<0.5,gwas.data$Freq_A2,1-gwas.data$Freq_A2)
+gwas.data$MAF=ifelse(gwas.data$MAF==0,gwas.data$MAF+1e-08,gwas.data$MAF)
+eqtl.data<-eqtl.data[eqtl.data$SNP %in% share.id,]
+dataset1=list(pvalues=as.numeric(gwas.data$Pvalue),type="cc", s=60620/1030836, N=1030836)
+dataset2=list(pvalues=eqtl.data$p, type="quant", N=581)
+coloc.abf(dataset1,dataset2, MAF=gwas.data$MAF)
+
+#####6.2 FinnGen dataset############################
+
+eqtl.data<-subset(ciseQTL.lpl,BP<=lpl.pos[3]+250e03 & BP>=lpl.pos[2]-250e03)
+share.id=intersect(eqtl.data$SNP,af.finngen$rsids)
+gwas.data<-af.finngen[match(share.id,af.finngen$rsids),]
+gwas.data$MAF=ifelse(gwas.data$af_alt<0.5,gwas.data$af_alt,1-gwas.data$af_alt)
+gwas.data$MAF=ifelse(gwas.data$MAF==0,gwas.data$MAF+1e-08,gwas.data$MAF)
+eqtl.data<-eqtl.data[eqtl.data$SNP %in% share.id,]
+dataset1=list(pvalues=as.numeric(gwas.data$pval),type="cc", s=45766/237690, N=237690)
+dataset2=list(pvalues=eqtl.data$p, type="quant", N=581)
+coloc.abf(dataset1,dataset2, MAF=gwas.data$MAF)
+
+####7. Validation in East Asian population##################################
 
 regional.snps<-read.table("100kb_snps_EAS.csv",header = T,sep=',',stringsAsFactors = F)
 ldlc.asian<-fread("logTG_INV_EAS_1KGP3_ALL.meta.singlevar.results.gz",header = T,sep = "\t",stringsAsFactors = F)
@@ -140,4 +171,3 @@ MRresults.afasian<-data.frame(generate_odds_ratios(mr(lpl.af.asian,method_list=c
 mr_heterogeneity(lpl.af.asian)
 mr_pleiotropy_test(lpl.af.asian)
 write.table(MRresults.afasian,"MRresults_lplasian_af.txt",quote = F,row.names = F,sep="\t")
-
