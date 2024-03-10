@@ -4,6 +4,7 @@ library(TwoSampleMR)
 library(data.table)
 library(plinkbinr)
 library(ieugwasr)
+library(coloc)
 ##"g1000_eur" and "g1000_eas" were downloaded from https://ctg.cncr.nl/software/magma
 ##"finngen_R9_I9_AF.gz" was downloaded from https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_I9_AF.gz
 ##"logTG_INV_EAS_1KGP3_ALL.meta.singlevar.results.gz" was downloaded from https://csg.sph.umich.edu/willer/public/glgc-lipids2021/results/ancestry_specific/
