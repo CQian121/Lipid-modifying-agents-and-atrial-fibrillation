@@ -81,25 +81,37 @@ for (i in 1:length(iv.lipcardio.final)) {
 rm(iv.lipcardio,lipcardio.afnie)
 write.table(MRresults.lipcardiofinal.afnie,"MRresults_lipcardiofinal_afnie.txt",quote = F,sep="\t",row.names = F)
 
-#####7.3. Mediation analyses for BMI, hypertension, and CHD###################
+#####7.3. Two-step mediation analyses for BMI, hypertension, and CHD###################
 
-############################Multivariate MR 
+mr_mediation<-function(x,y){
+  MR.A<-generate_odds_ratios(mr(x,method_list=c("mr_ivw")))
+  MR.B<-generate_odds_ratios(mv_multiple(y)$result)[2,]
+  mediation<-medci(mu.x = MR.A$b,mu.y = MR.B$b,type = "asymp",
+                   se.x = MR.A$se,se.y = MR.B$se)
+  Beta=mediation$Estimate  ###indirect effect
+  Se=mediation$SE
+  Proportion=Beta/MR.C$b   ###mediation proportion
+  Zvalue=Beta/Se
+  Pvalue=2*pnorm(abs(Zvalue),lower.tail = F)
+  return(c(Beta=Beta,Se=Se,Prop=Proportion,Zval=Zvalue,Pval=Pvalue))
+}
+MR.C=subset(MRresults.afnie,genes=="LPL" & method=="Inverse variance weighted")   ###total effect
 
-#####BMI
-lplbmi.snp=unique(c(iv.lpl$SNP,iv.lipcardio.final[["BMI"]]$SNP))
-iv.tsmv1<-extract_outcome_data("ieu-a-302",snps = lplbmi.snp,proxies = F,access_token = NULL) %>%
-  convert_outcome_to_exposure()
-iv.tsmv1$beta.exposure=-iv.tsmv1$beta.exposure
-iv.tsmv2<-extract_outcome_data("ieu-a-835",snps = lplbmi.snp,proxies = F,access_token = NULL) %>%
-  convert_outcome_to_exposure()
-identical(names(iv.tsmv1),names(iv.tsmv2))
-iv.tsmv<-rbind(iv.tsmv1,iv.tsmv2)
+############################BMI
+lpl.bmi<-extract_outcome_data(outcomes = "ieu-a-835",snps = iv.lpl$SNP,proxies = F,access_token = NULL) %>%
+  harmonise_data(iv.lpl,.,action = 2) %>% 
+  subset(mr_keep==T & pval.exposure<pval.outcome)
+generate_odds_ratios(mr(lpl.bmi,method_list = c("mr_ivw")))
+####the above result shows that BMI is not a mediator
 
-lplbmi.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.tsmv$SNP,proxies = F,access_token = NULL) %>%
-  mv_harmonise_data(iv.tsmv,.)
-generate_odds_ratios(mv_multiple(lplbmi.afnie)$result)
+############################Hypertension
+lpl.hp<-subset(hp.gwas,rsids %in% iv.lpl$SNP) %>%
+  format_data(type = "outcome",snps = iv.lpl$SNP,snp_col = "rsids",effect_allele_col = "alt",other_allele_col = "ref",
+              eaf_col = "af_alt",beta_col = "beta",se_col = "sebeta",pval_col = "pval") %>%
+  harmonise_data(iv.lpl,.,action = 2) %>% 
+  subset(mr_keep==T & pval.exposure<pval.outcome)
+generate_odds_ratios(mr(lpl.hp,method_list = c("mr_ivw"))) ###β1
 
-#####Hypertension
 lplhp.snp=unique(c(iv.lpl$SNP,iv.lipcardio.final[["Hypertension"]]$SNP))
 iv.tsmv1<-extract_outcome_data("ieu-a-302",snps = lplhp.snp,proxies = F,access_token = NULL) %>%
   convert_outcome_to_exposure()
@@ -109,12 +121,22 @@ iv.tsmv2<-subset(hp.gwas,rsids %in% lplhp.snp) %>%
               eaf_col = "af_alt",beta_col = "beta",se_col = "sebeta",pval_col = "pval",chr_col = "#chrom",pos_col = "pos")
 iv.tsmv2<-iv.tsmv2[,names(iv.tsmv1)]
 iv.tsmv<-rbind(iv.tsmv1,iv.tsmv2)
-
 lplhp.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.tsmv$SNP,proxies = F,access_token = NULL) %>%
   mv_harmonise_data(iv.tsmv,.)
-generate_odds_ratios(mv_multiple(lplhp.afnie)$result)
+generate_odds_ratios(mv_multiple(lplhp.afnie)$result) ###β2
 
-#####CHD
+hp.mediation<-mr_mediation(lpl.hp,lplhp.afnie) ###get β1*β2
+hp.mediation
+exp(hp.mediation[1])
+exp(hp.mediation[1]-1.96*hp.mediation[2])
+exp(hp.mediation[1]+1.96*hp.mediation[2])
+
+############################CHD
+lpl.chd<-extract_outcome_data(outcomes = "ieu-a-7",snps = iv.lpl$SNP,proxies = F,access_token = NULL) %>%
+  harmonise_data(iv.lpl,.,action = 2) %>% 
+  subset(mr_keep==T & pval.exposure<pval.outcome)
+generate_odds_ratios(mr(lpl.chd,method_list = c("mr_ivw"))) ###β1
+
 lplchd.snp=unique(c(iv.lpl$SNP,iv.lipcardio.final[["CHD"]]$SNP))
 iv.tsmv1<-extract_outcome_data("ieu-a-302",snps = lplchd.snp,proxies = F,access_token = NULL) %>%
   convert_outcome_to_exposure()
@@ -123,60 +145,36 @@ iv.tsmv2<-extract_outcome_data("ieu-a-7",snps = lplchd.snp,proxies = F,access_to
   convert_outcome_to_exposure()
 identical(names(iv.tsmv1),names(iv.tsmv2))
 iv.tsmv<-rbind(iv.tsmv1,iv.tsmv2)
-
 lplchd.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.tsmv$SNP,proxies = F,access_token = NULL) %>%
   mv_harmonise_data(iv.tsmv,.)
-generate_odds_ratios(mv_multiple(lplchd.afnie)$result)
+generate_odds_ratios(mv_multiple(lplchd.afnie)$result) ###β2
 
-############################Two-step MR
-mr_mediation<-function(x,y){
-  MR.A<-generate_odds_ratios(mr(x,method_list=c("mr_ivw")))
-  MR.B<-generate_odds_ratios(mr(y,method_list=c("mr_ivw")))
-  mediation<-medci(mu.x = MR.A$b,mu.y = MR.B$b,type = "asymp",
-                   se.x = MR.A$se,se.y = MR.B$se)
-  Beta=mediation$Estimate
-  Se=mediation$SE
-  Proportion=Beta/MR.C$b
-  Zvalue=Beta/Se
-  Pvalue=2*pnorm(abs(Zvalue),lower.tail = F)
-  return(c(Beta=Beta,Se=Se,Prop=Proportion,Zval=Zvalue,Pval=Pvalue))
-}
-MR.C=subset(MRresults.afnie,genes=="LPL" & method=="Inverse variance weighted")
-
-######BMI
-lpl.bmi<-extract_outcome_data(outcomes = "ieu-a-835",snps = iv.lpl$SNP,proxies = F,access_token = NULL) %>%
-  harmonise_data(iv.lpl,.,action = 2) %>% 
-  subset(mr_keep==T & pval.exposure<pval.outcome)
-generate_odds_ratios(mr(lpl.bmi,method_list = c("mr_ivw")))
-
-######Hypertension
-lpl.hp<-subset(hp.gwas,rsids %in% iv.lpl$SNP) %>%
-  format_data(type = "outcome",snps = iv.lpl$SNP,snp_col = "rsids",effect_allele_col = "alt",other_allele_col = "ref",
-              eaf_col = "af_alt",beta_col = "beta",se_col = "sebeta",pval_col = "pval") %>%
-  harmonise_data(iv.lpl,.,action = 2) %>% 
-  subset(mr_keep==T & pval.exposure<pval.outcome)
-generate_odds_ratios(mr(lpl.hp,method_list = c("mr_ivw")))
-hp.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.lipcardio.final[["Hypertension"]]$SNP,proxies = F,access_token = NULL) %>%
-  harmonise_data(iv.lipcardio.final[["Hypertension"]],.,action = 2) %>% 
-  subset(mr_keep==T & pval.exposure<pval.outcome)
-generate_odds_ratios(mr(hp.afnie,method_list = c("mr_ivw")))
-
-hp.mediation<-mr_mediation(lpl.hp,hp.afnie)
-exp(hp.mediation[1])
-exp(hp.mediation[1]-1.96*hp.mediation[2])
-exp(hp.mediation[1]+1.96*hp.mediation[2])
-
-######CHD
-lpl.chd<-extract_outcome_data(outcomes = "ieu-a-7",snps = iv.lpl$SNP,proxies = F,access_token = NULL) %>%
-  harmonise_data(iv.lpl,.,action = 2) %>% 
-  subset(mr_keep==T & pval.exposure<pval.outcome)
-generate_odds_ratios(mr(lpl.chd,method_list = c("mr_ivw")))
-chd.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.lipcardio.final[["CHD"]]$SNP,proxies = F,access_token = NULL) %>%
-  harmonise_data(iv.lipcardio.final[["CHD"]],.,action = 2) %>% 
-  subset(mr_keep==T & pval.exposure<pval.outcome)
-generate_odds_ratios(mr(chd.afnie,method_list = c("mr_ivw")))
-
-chd.mediation<-mr_mediation(lpl.chd,chd.afnie)
+chd.mediation<-mr_mediation(lpl.chd,lplchd.afnie) ###get β1*β2
+chd.mediation
 exp(chd.mediation[1])
 exp(chd.mediation[1]-1.96*chd.mediation[2])
 exp(chd.mediation[1]+1.96*chd.mediation[2])
+
+############################Hypertension+CHD
+lplhpchd.snp=unique(c(iv.lpl$SNP,iv.lipcardio.final[["Hypertension"]]$SNP,iv.lipcardio.final[["CHD"]]$SNP))
+iv.tsmv1<-extract_outcome_data("ieu-a-302",snps = lplhpchd.snp,proxies = F,access_token = NULL) %>%
+  convert_outcome_to_exposure()
+iv.tsmv1$beta.exposure=-iv.tsmv1$beta.exposure
+iv.tsmv2<-subset(hp.gwas,rsids %in% lplhpchd.snp) %>%
+  format_data(type = "exposure",snp_col = "rsids",effect_allele_col = "alt",other_allele_col = "ref",
+              eaf_col = "af_alt",beta_col = "beta",se_col = "sebeta",pval_col = "pval",chr_col = "#chrom",pos_col = "pos")
+iv.tsmv2<-iv.tsmv2[,names(iv.tsmv1)]
+iv.tsmv3<-extract_outcome_data("ieu-a-7",snps = lplhpchd.snp,proxies = F,access_token = NULL) %>%
+  convert_outcome_to_exposure()
+identical(names(iv.tsmv1),names(iv.tsmv3))
+iv.tsmv<-rbind(iv.tsmv1,iv.tsmv2,iv.tsmv3)
+lplhpchd.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.tsmv$SNP,proxies = F,access_token = NULL) %>%
+  mv_harmonise_data(iv.tsmv,.)
+
+c.direct=generate_odds_ratios(mv_multiple(lplhpchd.afnie)$result)[2,]$b ###combined direct effect
+c.total=MR.C$b
+c.indirect=c.total-c.direct ###combined indirect effect
+prop.combine=c.indirect/c.total ###combined mediation proportion
+
+###estimate 95% CI for the combined indirect effect using bootstraping
+
