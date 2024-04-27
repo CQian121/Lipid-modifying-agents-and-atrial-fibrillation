@@ -91,6 +91,26 @@ run_mr_presso(lpl.afnie)
 leaveoneout.lpl.afnie<-generate_odds_ratios(mr_leaveoneout(lpl.afnie))
 write.table(leaveoneout.lpl.afnie,"Leaveoneout_lpl_afnie.txt",quote = F,row.names = F,sep = "\t")
 
+#####4.3. Sensitivity analysis using LD R2<0.1#################
+
+targets.lipid<-subset(regional.snps,genes==lipid.genes[8]) %>% 
+  extract_outcome_data(outcomes="ieu-a-302",snps =.$snps,proxies = F,access_token = NULL) %>% 
+  convert_outcome_to_exposure() %>% 
+  subset(pval.exposure<5e-08)   #####significant SNPs with p<5e-08
+clump.data<-ld_clump(dplyr::tibble(rsid=targets.lipid$SNP, pval=targets.lipid$pval.exposure, id=targets.lipid$id.exposure),
+                     clump_kb = 10000,
+                     clump_r2 = 0.1,
+                     plink_bin = get_plink_exe(),
+                     bfile = "E:/share/smr/1000G/EUR")  ####clumped using r2<0.1 within ±10Mb
+iv.lpl01<-subset(targets.lipid,SNP %in% clump.data$rsid)
+iv.lpl01$beta.exposure=-iv.lpl01$beta.exposure
+iv.lpl01$F.statistic=(iv.lpl01$beta.exposure/iv.lpl01$se.exposure)^2   #####calculate F statistic
+
+lpl01.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.lpl01$SNP,proxies = F,access_token = NULL) %>%
+    harmonise_data(iv.lpl01,.,action = 2) %>%
+    subset(mr_keep==T & pval.exposure<pval.outcome)
+MRresults01.afnie<-generate_odds_ratios(mr(lpl01.afnie,method_list=c("mr_ivw","mr_egger_regression","mr_weighted_median")))
+
 ####5. MR analyses for AF in FinnGen (validation cohort)#####################################
 
 #####5.1. Main analyses#######################
@@ -114,6 +134,15 @@ write.table(MRsensi.affin,"MRsensi_affin.txt",quote = F,row.names = F,sep = "\t"
 run_mr_presso(lpl.affin)
 leaveoneout.lpl.affin<-generate_odds_ratios(mr_leaveoneout(lpl.affin))
 write.table(leaveoneout.lpl.affin,"Leaveoneout_lpl_affin.txt",quote = F,row.names = F,sep = "\t")
+
+#####5.3. Sensitivity analysis using LD R2<0.1#################
+
+af.fin<-subset(af.finngen,rsids %in% iv.lpl01$SNP)
+lpl01.affin<-format_data(af.fin,type="outcome",snps = iv.lpl01$SNP,snp_col = "rsids",effect_allele_col = "alt",other_allele_col = "ref",
+                         eaf_col = "af_alt",beta_col = "beta",se_col = "sebeta",pval_col = "pval") %>%
+  harmonise_data(iv.lpl01,.,action = 2) %>%
+  subset(mr_keep==T & pval.exposure<pval.outcome)
+MRresults01.affin<-generate_odds_ratios(mr(lpl01.affin,method_list=c("mr_ivw","mr_egger_regression","mr_weighted_median")))
 
 ####6. Colocalization##################################
 
