@@ -171,10 +171,17 @@ iv.tsmv<-rbind(iv.tsmv1,iv.tsmv2,iv.tsmv3)
 lplhpchd.afnie<-extract_outcome_data(outcomes = "ebi-a-GCST006414",snps = iv.tsmv$SNP,proxies = F,access_token = NULL) %>%
   mv_harmonise_data(iv.tsmv,.)
 
-c.direct=generate_odds_ratios(mv_multiple(lplhpchd.afnie)$result)[2,]$b ###combined direct effect
-c.total=MR.C$b
-c.indirect=c.total-c.direct ###combined indirect effect
-prop.combine=c.indirect/c.total ###combined mediation proportion
+b.direct=generate_odds_ratios(mv_multiple(lplhpchd.afnie)$result)[2,]$b
+se.direct=generate_odds_ratios(mv_multiple(lplhpchd.afnie)$result)[2,]$se
+b.total=MR.C$b
+se.total=MR.C$se
+b.indirect=b.total-b.direct
 
-###estimate 95% CI for the combined indirect effect using bootstraping
+prop.combined=b.indirect/b.total
+se.indirect=sqrt(se.total^4*MR.C$nsnp+se.direct^4*generate_odds_ratios(mv_multiple(lplhpchd.afnie)$result)[2,]$nsnp)
+p.indirect=2*pnorm(abs(b.indirect/se.indirect),lower.tail = F)
+exp(b.indirect)
+exp(b.indirect-1.96*se.indirect)
+exp(b.indirect+1.96*se.indirect)
+
 
